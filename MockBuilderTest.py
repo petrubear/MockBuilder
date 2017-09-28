@@ -18,14 +18,17 @@ class RequestDataTest(unittest.TestCase):
         self.assertEqual(body, body_patterns)
 
     def testResponse(self):
-        service = '/consultationIbs/CustomerConsultationWsService'
-        line_id = ' 1'
+        line = 'ID: 4#Response-Code: 200#Encoding: UTF-8#Content-Type: text/xml; charset=UTF-8#Headers: {Content-Language=[en-US], Content-Length=[513], content-type=[text/xml; charset=UTF-8], Date=[Wed, 27 Sep 2017 17:12:03 GMT], X-Powered-By=[Servlet/3.0]}#Payload: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"><soapenv:Body><dlwmin:ibsGetCustomerProductsResponse xmlns:dlwmin="http://bancointernacional.com.ec/wsdl/consultation/customer" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><CustomerProductResponse><messageDescr>OK</messageDescr><messageId>0</messageId><products>005|002|001|004|</products></CustomerProductResponse></dlwmin:ibsGetCustomerProductsResponse></soapenv:Body></soapenv:Envelope>#'
         mb = MockBuilder.MockBuilder()
-        data = mb.get_response_data(mb.get_filename(service, line_id))
+        data = mb.get_response_data(line)
         status = data['status']
-        body_filename = data['bodyFileName']
+        headers = data['headers']
+        content_len = headers['Content-Length']
+        # body_filename = data['bodyFileName']
+
         self.assertEqual(200, status)
-        self.assertEqual('body-consultationIbs-CustomerConsultationWsService-1', body_filename)
+        self.assertEqual('513', content_len)
+        # self.assertEqual('body-consultationIbs-CustomerConsultationWsService-1', body_filename)
 
     def testDB(self):
         mb = MockBuilder.MockBuilder()

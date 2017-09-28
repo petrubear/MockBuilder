@@ -11,6 +11,7 @@ class MockBuilder:
         logging.basicConfig(format=log_format, level=logging.INFO)
         logger = logging.getLogger('mock.builder')
         self.logger = logger
+        self.conn = None
 
         config = configparser.ConfigParser()
         config.read('mockbuilder.ini')
@@ -19,21 +20,31 @@ class MockBuilder:
         self.db_name = default_config['DBNAME']
 
     def build(self, request_file, response_file):
+        self.conn = sqlite3.connect(self.db_name)
         with open(request_file, 'r') as openFileObject:
             for line in openFileObject:
                 if len(line) > 0:
-                    self.process_line(line)
+                    self.process_request_line(line)
+        self.conn.commit()
+        with open(response_file, 'r') as openFileObject:
+            for line in openFileObject:
+                if len(line) > 0:
+                    self.process_response_line(line)
+        self.conn.commit()
+        self.conn.close()
 
-    def process_line(self, line):
+    def process_request_line(self, line):
         request = self.get_request_data(line)
-        service = request['url']
-        line_id = line[3:line.index('#Address:')]
-        filename = self.get_filename(service, line_id)
-        service_data = {'request': request, 'response': self.get_response_data(filename)}
-        json_data = json.dumps(service_data)
-        self.write_to_file(json_data, filename)
+        line_id = str(line[:line.index('#Address:')]).replace('ID: ', '')
+        self.write_request_db(line_id, request)
+
+        # service = request['url']
+        # filename = self.get_filename(service, line_id)
+        # service_data = {'request': request, 'response': self.get_response_data(filename)}
+        # json_data = json.dumps(service_data)
+        # self.write_to_file(json_data, filename)
         self.logger.debug('************************************************************')
-        self.logger.debug(json_data)
+        # self.logger.debug(json_data)
         self.logger.debug('LINE: ' + str(line))
 
     def get_request_data(self, line):
@@ -57,16 +68,30 @@ class MockBuilder:
 
         return request_data
 
-    # TODO EM: el response va quemado??
-    def get_response_data(self, filename):
+    def process_response_line(self, line):
+        line_id = str(line[:line.index('#Response-Code:')]).replace('ID: ', '')
+        response = self.get_response_data(line)
+        self.write_response_db(line_id, response)
+
+    def get_response_data(self, line):
+        # get status
+        status_init = line.index('#Response-Code: ') + 16
+        status_end = line.index('#Encoding')
+        status = line[status_init:status_end]
+
+        content_len_init = line.index('Content-Length=[') + 16
+        content_len_end = line.index('], content-type')
+        content_len = line[content_len_init:content_len_end]
 
         headers = {'X-Powered-By': 'Servlet/3.0',
                    'Content-Type': 'text/xml; charset=UTF-8',
                    'Content-Language': 'en-US',
-                   'Content-Length': 0,  # TODO Que pongo aqui!
+                   'Content-Length': content_len,
                    'Date': 'Wed, 10 Feb 2016 17:18:28 GMT'}
-
-        response_data = {'status': 200, 'bodyFileName': filename, 'headers': headers}
+        #
+        # response_data = {'status': 200, 'bodyFileName': filename, 'headers': headers}
+        # return response_data
+        response_data = {'status': int(status), 'headers': headers}
         return response_data
 
     def get_filename(self, service, line_id):
@@ -87,15 +112,35 @@ class MockBuilder:
 
     def setup_db(self):
         self.logger.info("Setup DB: " + self.db_name)
-        conn = sqlite3.connect(self.db_name)
-        c = conn.cursor()
+        self.conn = sqlite3.connect(self.db_name)
+        c = self.conn.cursor()
 
-        c.execute('''CREATE TABLE IF NOT EXISTS SERVICE_MOCK(ID TEXT, URL TEXT, METHOD text, BODYPATTERNS TEXT)''')
-        c.execute('''DELETE FROM SERVICE_MOCK''')
+        sql_drop = '''DROP TABLE IF EXISTS SERVICE_MOCK'''
+        sql_create = '''CREATE TABLE SERVICE_MOCK(ID TEXT, URL TEXT, METHOD TEXT, BODYPATTERNS TEXT, STATUS INT, CONTENTLEN TEXT)'''
+        c.execute(sql_drop)
+        c.execute(sql_create)
 
-        conn.commit()
-        conn.close()
+        self.conn.commit()
+        self.conn.close()
 
+    def write_request_db(self, line_id, json_data):
+        c = self.conn.cursor()
+        sql = '''INSERT INTO SERVICE_MOCK (ID, URL, METHOD, BODYPATTERNS) VALUES (?, ?, ?, ?)'''
+        url = str(json_data['url'])
+        method = str(json_data['method'])
+        body = str(json_data['bodyPatterns'])
+        parameters = (line_id, url, method, body)
+        c.execute(sql, parameters)
+
+    def write_response_db(self, line_id, json_data):
+        c = self.conn.cursor()
+        status = int(json_data['status'])
+        headers = json_data['headers']
+        content_len = headers['Content-Length']
+        parameters =(status, content_len, line_id)
+        sql = '''UPDATE SERVICE_MOCK SET STATUS = ?, CONTENTLEN = ? WHERE ID = ?'''
+
+        c.execute(sql, parameters)
 
 # TODO leer archivo de la linea de comandos
 def main():
