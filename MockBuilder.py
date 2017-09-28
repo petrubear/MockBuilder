@@ -21,17 +21,20 @@ class MockBuilder:
 
     def build(self, request_file, response_file):
         self.conn = sqlite3.connect(self.db_name)
+        self.logger.info('Reading request file...')
         with open(request_file, 'r') as openFileObject:
             for line in openFileObject:
                 if len(line) > 0:
                     self.process_request_line(line)
         self.conn.commit()
+        self.logger.info('Reading response file...')
         with open(response_file, 'r') as openFileObject:
             for line in openFileObject:
                 if len(line) > 0:
                     self.process_response_line(line)
         self.conn.commit()
         self.conn.close()
+        self.logger.info('Writing output files...')
 
     def process_request_line(self, line):
         request = self.get_request_data(line)
@@ -79,6 +82,10 @@ class MockBuilder:
         status_end = line.index('#Encoding')
         status = line[status_init:status_end]
 
+        response_init = line.index('#Payload: ') + 10
+        response_end = line.index('</soapenv:Envelope>#') + 19
+        response_body = line[response_init:response_end]
+
         content_len_init = line.index('Content-Length=[') + 16
         content_len_end = line.index('], content-type')
         content_len = line[content_len_init:content_len_end]
@@ -88,10 +95,8 @@ class MockBuilder:
                    'Content-Language': 'en-US',
                    'Content-Length': content_len,
                    'Date': 'Wed, 10 Feb 2016 17:18:28 GMT'}
-        #
-        # response_data = {'status': 200, 'bodyFileName': filename, 'headers': headers}
-        # return response_data
-        response_data = {'status': int(status), 'headers': headers}
+
+        response_data = {'status': int(status), 'headers': headers, 'response_body': response_body}
         return response_data
 
     def get_filename(self, service, line_id):
@@ -101,7 +106,7 @@ class MockBuilder:
         request_path = self.output_path + '/request/'
         extension = '.json'
         file_path = request_path + filename + extension
-        self.logger.info('Writing File: ' + file_path)
+        self.logger.debug('Writing File: ' + file_path)
 
         if not os.path.exists(request_path):
             os.makedirs(request_path)
@@ -116,29 +121,33 @@ class MockBuilder:
         c = self.conn.cursor()
 
         sql_drop = '''DROP TABLE IF EXISTS SERVICE_MOCK'''
-        sql_create = '''CREATE TABLE SERVICE_MOCK(ID TEXT, URL TEXT, METHOD TEXT, BODYPATTERNS TEXT, STATUS INT, CONTENTLEN TEXT)'''
+        sql_create = '''CREATE TABLE SERVICE_MOCK(ID TEXT, URL TEXT, METHOD TEXT, BODYPATTERNS TEXT, FILENAME TEXT, STATUS INT, CONTENTLEN TEXT, RESPONSE TEXT)'''
         c.execute(sql_drop)
         c.execute(sql_create)
 
         self.conn.commit()
         self.conn.close()
 
-    def write_request_db(self, line_id, json_data):
+    def write_request_db(self, line_id, data):
+        self.logger.debug("Writing request to DB")
         c = self.conn.cursor()
-        sql = '''INSERT INTO SERVICE_MOCK (ID, URL, METHOD, BODYPATTERNS) VALUES (?, ?, ?, ?)'''
-        url = str(json_data['url'])
-        method = str(json_data['method'])
-        body = str(json_data['bodyPatterns'])
-        parameters = (line_id, url, method, body)
+        sql = '''INSERT INTO SERVICE_MOCK (ID, URL, METHOD, BODYPATTERNS, FILENAME) VALUES (?, ?, ?, ?, ?)'''
+        url = str(data['url'])
+        method = str(data['method'])
+        body = str(data['bodyPatterns'])
+        filename = self.get_filename(url, line_id) + '.json'
+        parameters = (line_id, url, method, body, filename)
         c.execute(sql, parameters)
 
-    def write_response_db(self, line_id, json_data):
+    def write_response_db(self, line_id, data):
+        self.logger.debug("Writing response to DB")
         c = self.conn.cursor()
-        status = int(json_data['status'])
-        headers = json_data['headers']
+        status = int(data['status'])
+        headers = data['headers']
         content_len = headers['Content-Length']
-        parameters =(status, content_len, line_id)
-        sql = '''UPDATE SERVICE_MOCK SET STATUS = ?, CONTENTLEN = ? WHERE ID = ?'''
+        response = data['response_body']
+        parameters =(status, content_len, response, line_id)
+        sql = '''UPDATE SERVICE_MOCK SET STATUS = ?, CONTENTLEN = ?, RESPONSE = ? WHERE ID = ?'''
 
         c.execute(sql, parameters)
 
@@ -149,7 +158,6 @@ def main():
     request = '/Users/edison/Tmp/mock_test/out/request-20170928_101035.txt'
     response = '/Users/edison/Tmp/mock_test/out/response-20170928_101035.txt'
     mb.build(request, response)
-    print("Done.")
 
 
 if __name__ == '__main__':

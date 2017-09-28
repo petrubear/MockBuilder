@@ -24,11 +24,12 @@ class RequestDataTest(unittest.TestCase):
         status = data['status']
         headers = data['headers']
         content_len = headers['Content-Length']
-        # body_filename = data['bodyFileName']
+        response_body = data['response_body']
 
         self.assertEqual(200, status)
         self.assertEqual('513', content_len)
-        # self.assertEqual('body-consultationIbs-CustomerConsultationWsService-1', body_filename)
+        self.assertTrue(str(response_body).startswith('<?xml version="1.0" encoding="UTF-8"?>'))
+        self.assertTrue(str(response_body).endswith('</soapenv:Envelope>'))
 
     def testDB(self):
         mb = MockBuilder.MockBuilder()
