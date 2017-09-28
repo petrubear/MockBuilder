@@ -1,3 +1,4 @@
+import argparse
 import configparser
 import json
 import logging
@@ -11,23 +12,24 @@ class MockBuilder:
         logging.basicConfig(format=log_format, level=logging.INFO)
         logger = logging.getLogger('mock.builder')
         self.logger = logger
+        self.config_file = 'mockbuilder.ini'
         self.conn = None
 
         config = configparser.ConfigParser()
-        config.read('mockbuilder.ini')
+        config.read(self.config_file)
         default_config = config['PROCESS']
         self.output_path = default_config['OUTPUTPATH']
         self.db_name = default_config['DBNAME']
 
     def build(self, request_file, response_file):
         self.conn = sqlite3.connect(self.db_name)
-        self.logger.info('Reading request file...')
+        self.logger.info('Reading request file: ' + request_file)
         with open(request_file, 'r') as openFileObject:
             for line in openFileObject:
                 if len(line) > 0:
                     self.process_request_line(line)
         self.conn.commit()
-        self.logger.info('Reading response file...')
+        self.logger.info('Reading response file: ' + response_file)
         with open(response_file, 'r') as openFileObject:
             for line in openFileObject:
                 if len(line) > 0:
@@ -58,7 +60,6 @@ class MockBuilder:
         equal_to_end = line.index('</soap:Envelope>#') + 16
         equal_to = line[equal_to_init:equal_to_end]
 
-        # equal_to_data = {'equalTo': equal_to}
         request_data = {'url': url, 'method': method, 'bodyPatterns': equal_to}
 
         return request_data
@@ -165,14 +166,29 @@ class MockBuilder:
         c.execute(sql, parameters)
 
 
-# TODO leer archivo de la linea de comandos
-def main():
+# def main():
+#     mb = MockBuilder()
+#     mb.setup_db()
+#     request = '/Users/edison/Tmp/mock_test/out/request-20170928_101035.txt'
+#     response = '/Users/edison/Tmp/mock_test/out/response-20170928_101035.txt'
+#     mb.build(request, response)
+#
+#
+# if __name__ == '__main__':
+#     main()
+
+parser = argparse.ArgumentParser()
+parser.add_argument('request_file')
+parser.add_argument('response_file')
+args = parser.parse_args()
+
+
+def main(request, response):
     mb = MockBuilder()
     mb.setup_db()
-    request = '/Users/edison/Tmp/mock_test/out/request-20170928_101035.txt'
-    response = '/Users/edison/Tmp/mock_test/out/response-20170928_101035.txt'
     mb.build(request, response)
 
 
 if __name__ == '__main__':
-    main()
+    main(args.request_file, args.response_file)
+

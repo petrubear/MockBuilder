@@ -12,16 +12,18 @@ Configurar la variable **OUTPUTPATH** en el archivo **mockbuilder.db**
 OUTPUTPATH=/Users/edison/Tmp/mock_test/out
 ```
 
-Ejecutar el script prepare_log.sh con el log de salida de cxf como parámetro
+Ejecutar el script prepare_log.sh con el log de salida de cxf como parámetro, este genera los request y response para wiremock
 
 ```bash
 ./prepare_log.sh cxf_log.log
 ```
 
-Invocar el programa MockBuilder.py con los archivos de salida del comando anterior como parámetro
+Los archivos de salida de request deben copiarse en el directorio **mappings** y los archivos de salida de response en el directorio **__files**
+
+Alternativamente, se puede invocar el programa MockBuilder.py con los archivos de salida de request y response que genera **prepare_log.sh**
 
 ```bash
-python MockBuilder.py request-20170928_101035.txt response-20170928_101035.txt
+python3 MockBuilder.py request-20170928_101035.txt response-20170928_101035.txt
 ```
 
 

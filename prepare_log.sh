@@ -38,3 +38,7 @@ if [ -f ${res_output_file} ] ; then
 else
    echo '[ERROR] File not Found: '${res_output_file}
 fi
+
+echo ''
+echo '[INFO] Processing mocks...'
+python3 MockBuilder.py ${req_output_file} ${res_output_file}
