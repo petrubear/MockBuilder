@@ -1,13 +1,14 @@
 #!/bin/sh
 # request parser
-output_dir=/Users/edison/Tmp/mock_test/out/
-timestamp=$(date +"%Y%m%d_%I%M%S")
-req_output_file=${output_dir}'request-'${timestamp}'.txt'
+OUTPUT_PATH=/Users/edison/Tmp/mock_test/out/
+TIMESTAMP=$(date +"%Y%m%d_%I%M%S")
 
-mkdir -p ${output_dir}
+mkdir -p ${OUTPUT_PATH}
 echo '[INFO] Input: '$1
 echo ''
 echo '[INFO] Processing request...'
+req_output_file=${OUTPUT_PATH}'request-'${TIMESTAMP}'.txt'
+
 if [ -f ${req_output_file} ] ; then
     rm ${req_output_file}
 fi
@@ -24,7 +25,7 @@ fi
 
 echo ''
 echo '[INFO] Processing response...'
-res_output_file=${output_dir}'response-'${timestamp}'.txt'
+res_output_file=${OUTPUT_PATH}'response-'${TIMESTAMP}'.txt'
 
 if [ -f ${res_output_file} ] ; then
     rm ${res_output_file}

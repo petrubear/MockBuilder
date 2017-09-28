@@ -18,7 +18,7 @@ class MockBuilder:
         config = configparser.ConfigParser()
         config.read(self.config_file)
         default_config = config['PROCESS']
-        self.output_path = default_config['OUTPUTPATH']
+        self.output_path = default_config['OUTPUT_PATH']
         self.db_name = default_config['DBNAME']
 
     def build(self, request_file, response_file):

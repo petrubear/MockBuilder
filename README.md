@@ -1,12 +1,12 @@
 # MockBuilder
 
-Configurar la variable **output_dir** en el archivo **prepare_log.sh**
+Configurar la variable **OUTPUT_PATH** en el archivo **prepare_log.sh**
 
 ```bash
 output_dir=/Users/edison/Tmp/mock_test/out/
 ```
 
-Configurar la variable **OUTPUTPATH** en el archivo **mockbuilder.ini**
+Configurar la variable **OUTPUT_PATH** en el archivo **mockbuilder.ini**
 
 ```bash
 OUTPUTPATH=/Users/edison/Tmp/mock_test/out
