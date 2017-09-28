@@ -35,20 +35,12 @@ class MockBuilder:
         self.conn.commit()
         self.conn.close()
         self.logger.info('Writing output files...')
+        self.write_request_response_files()
 
     def process_request_line(self, line):
         request = self.get_request_data(line)
         line_id = str(line[:line.index('#Address:')]).replace('ID: ', '')
         self.write_request_db(line_id, request)
-
-        # service = request['url']
-        # filename = self.get_filename(service, line_id)
-        # service_data = {'request': request, 'response': self.get_response_data(filename)}
-        # json_data = json.dumps(service_data)
-        # self.write_to_file(json_data, filename)
-        self.logger.debug('************************************************************')
-        # self.logger.debug(json_data)
-        self.logger.debug('LINE: ' + str(line))
 
     def get_request_data(self, line):
         # get url
@@ -66,8 +58,8 @@ class MockBuilder:
         equal_to_end = line.index('</soap:Envelope>#') + 16
         equal_to = line[equal_to_init:equal_to_end]
 
-        equal_to_data = {'equalTo': equal_to}
-        request_data = {'url': url, 'method': method, 'bodyPatterns': [equal_to_data]}
+        # equal_to_data = {'equalTo': equal_to}
+        request_data = {'url': url, 'method': method, 'bodyPatterns': equal_to}
 
         return request_data
 
@@ -102,16 +94,38 @@ class MockBuilder:
     def get_filename(self, service, line_id):
         return 'body' + service.replace('/', '-') + '-' + line_id.replace(' ', '')
 
-    def write_to_file(self, data, filename):
+    def write_request_response_files(self):
+        self.logger.debug("Writing request files...")
         request_path = self.output_path + '/request/'
-        extension = '.json'
-        file_path = request_path + filename + extension
-        self.logger.debug('Writing File: ' + file_path)
+        self.conn = sqlite3.connect(self.db_name)
+        c = self.conn.cursor()
+        sql = '''SELECT * FROM SERVICE_MOCK'''
+        c.execute(sql)
+        rows = c.fetchall()
 
-        if not os.path.exists(request_path):
-            os.makedirs(request_path)
+        for row in rows:
+            filename = row[4]
+            body = row[7]
+            equal_to_data = {'equalTo': row[3]}
+            request = {'url': row[1], 'method': row[2], 'bodyPatterns': [equal_to_data]}
+            headers = {'X-Powered-By': 'Servlet/3.0',
+                       'Content-Type': 'text/xml; charset=UTF-8',
+                       'Content-Language': 'en-US',
+                       'Content-Length': row[6],
+                       'Date': 'Wed, 10 Feb 2016 17:18:28 GMT'}
+            response = {'status': row[5], 'bodyFilename': filename, 'headers': headers}
+            service_data = {'request': request, 'response': response}
+            json_data = json.dumps(service_data)
+            self.write_file('request/', filename, json_data)
+            self.write_file('response/', filename, body)
 
-        file = open(file_path, 'w')
+    def write_file(self, path, filename, data):
+        self.logger.debug('Writing File: ' + filename)
+        file_path = self.output_path + path
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+
+        file = open(file_path + filename, 'w')
         file.write(data)
         file.close()
 
@@ -148,8 +162,8 @@ class MockBuilder:
         response = data['response_body']
         parameters =(status, content_len, response, line_id)
         sql = '''UPDATE SERVICE_MOCK SET STATUS = ?, CONTENTLEN = ?, RESPONSE = ? WHERE ID = ?'''
-
         c.execute(sql, parameters)
+
 
 # TODO leer archivo de la linea de comandos
 def main():
