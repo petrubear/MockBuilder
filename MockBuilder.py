@@ -1,7 +1,8 @@
 import configparser
-import logging
 import json
+import logging
 import os
+import sqlite3
 
 
 class MockBuilder:
@@ -14,10 +15,11 @@ class MockBuilder:
         config = configparser.ConfigParser()
         config.read('mockbuilder.ini')
         default_config = config['PROCESS']
-        self.output_path = default_config['OutputPath']
+        self.output_path = default_config['OUTPUTPATH']
+        self.db_name = default_config['DBNAME']
 
-    def build(self, input_file):
-        with open(input_file, 'r') as openFileObject:
+    def build(self, request_file, response_file):
+        with open(request_file, 'r') as openFileObject:
             for line in openFileObject:
                 if len(line) > 0:
                     self.process_line(line)
@@ -83,11 +85,25 @@ class MockBuilder:
         file.write(data)
         file.close()
 
+    def setup_db(self):
+        self.logger.info("Setup DB: " + self.db_name)
+        conn = sqlite3.connect(self.db_name)
+        c = conn.cursor()
+
+        c.execute('''CREATE TABLE IF NOT EXISTS SERVICE_MOCK(ID TEXT, URL TEXT, METHOD text, BODYPATTERNS TEXT)''')
+        c.execute('''DELETE FROM SERVICE_MOCK''')
+
+        conn.commit()
+        conn.close()
+
 
 # TODO leer archivo de la linea de comandos
 def main():
     mb = MockBuilder()
-    mb.build('/Users/edison/Tmp/mock_test/request-extract.txt')
+    mb.setup_db()
+    request = '/Users/edison/Tmp/mock_test/out/request-20170928_101035.txt'
+    response = '/Users/edison/Tmp/mock_test/out/response-20170928_101035.txt'
+    mb.build(request, response)
     print("Done.")
 
 

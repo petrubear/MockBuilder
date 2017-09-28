@@ -27,6 +27,11 @@ class RequestDataTest(unittest.TestCase):
         self.assertEqual(200, status)
         self.assertEqual('body-consultationIbs-CustomerConsultationWsService-1', body_filename)
 
+    def testDB(self):
+        mb = MockBuilder.MockBuilder()
+        mb.setup_db()
+        self.assertTrue(True)
+
 
 if __name__ == '__main__':
     unittest.main()
