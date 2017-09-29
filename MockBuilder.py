@@ -115,7 +115,7 @@ class MockBuilder:
                        'Content-Language': 'en-US',
                        'Content-Length': row[6],
                        'Date': 'Wed, 10 Feb 2016 17:18:28 GMT'}
-            response = {'status': row[5], 'bodyFilename': filename, 'headers': headers}
+            response = {'status': row[5], 'bodyFileName': filename, 'headers': headers}
             service_data = {'request': request, 'response': response}
             json_data = json.dumps(service_data)
             self.write_file(self.request_dir, filename, json_data)
