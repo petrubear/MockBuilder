@@ -1,4 +1,5 @@
 # MockBuilder
+### Idea Original de @bluewake
 
 Configurar la variable **OUTPUT_PATH** en el archivo **prepare_log.sh**
 
