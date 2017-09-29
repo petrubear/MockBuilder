@@ -19,6 +19,8 @@ class MockBuilder:
         config.read(self.config_file)
         default_config = config['PROCESS']
         self.output_path = default_config['OUTPUT_PATH']
+        self.request_dir = default_config['REQUEST_DIR']
+        self.response_dir = default_config['RESPONSE_DIR']
         self.db_name = default_config['DBNAME']
 
     def build(self, request_file, response_file):
@@ -97,7 +99,6 @@ class MockBuilder:
 
     def write_request_response_files(self):
         self.logger.debug("Writing request files...")
-        request_path = self.output_path + '/request/'
         self.conn = sqlite3.connect(self.db_name)
         c = self.conn.cursor()
         sql = '''SELECT * FROM SERVICE_MOCK'''
@@ -117,8 +118,8 @@ class MockBuilder:
             response = {'status': row[5], 'bodyFilename': filename, 'headers': headers}
             service_data = {'request': request, 'response': response}
             json_data = json.dumps(service_data)
-            self.write_file('request/', filename, json_data)
-            self.write_file('response/', filename, body)
+            self.write_file(self.request_dir, filename, json_data)
+            self.write_file(self.response_dir, filename, body)
 
     def write_file(self, path, filename, data):
         self.logger.debug('Writing File: ' + filename)
