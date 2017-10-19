@@ -196,7 +196,7 @@ def parse_args(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('request_file')
     parser.add_argument('response_file')
-    return parser.parse_args()
+    return parser.parse_args(args)
 
 
 def main():
