@@ -3,8 +3,9 @@ import configparser
 import json
 import logging
 import os
-import sqlite3
 import re
+import sqlite3
+import sys
 
 
 class MockBuilder:
@@ -190,17 +191,20 @@ class MockBuilder:
 # if __name__ == '__main__':
 #     main()
 
-parser = argparse.ArgumentParser()
-parser.add_argument('request_file')
-parser.add_argument('response_file')
-args = parser.parse_args()
+
+def parse_args(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('request_file')
+    parser.add_argument('response_file')
+    return parser.parse_args()
 
 
-def main(request, response):
+def main():
+    args = parse_args(sys.argv[1:])
     mb = MockBuilder()
     mb.setup_db()
-    mb.build(request, response)
+    mb.build(args.request_file, args.response_file)
 
 
 if __name__ == '__main__':
-    main(args.request_file, args.response_file)
+    main()
