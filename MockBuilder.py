@@ -150,7 +150,7 @@ class MockBuilder:
         c = self.conn.cursor()
 
         sql_drop = '''DROP TABLE IF EXISTS SERVICE_MOCK'''
-        sql_create = '''CREATE TABLE SERVICE_MOCK(ID TEXT, URL TEXT, METHOD TEXT, BODYPATTERNS TEXT, FILENAME TEXT, STATUS INT, CONTENTLEN TEXT, RESPONSE TEXT)'''
+        sql_create = '''CREATE TABLE SERVICE_MOCK(ID TEXT, URL TEXT, METHOD TEXT, BODYPATTERNS TEXT, FILENAME TEXT, STATUS INT, CONTENTLEN TEXT, RESPONSE TEXT)'''  # noqa
         c.execute(sql_drop)
         c.execute(sql_create)
 
