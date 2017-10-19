@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import sqlite3
+import re
 
 
 class MockBuilder:
@@ -28,14 +29,24 @@ class MockBuilder:
         self.logger.info('Reading request file: ' + request_file)
         with open(request_file, 'r') as openFileObject:
             for line in openFileObject:
-                if len(line) > 0:
-                    self.process_request_line(line)
+                # verifico que la linea no este en blanco
+                if len(line.strip()) > 0:
+                    # verifico que la linea contenga la entrada que considero un request (ID: 71#Address: )
+                    if re.search("ID: [0-9]+#Address:", line):
+                        # verifico que el payload contenga un mensaje SOAP
+                        if re.search("</soap:Envelope>", line):
+                            self.process_request_line(line)
         self.conn.commit()
         self.logger.info('Reading response file: ' + response_file)
         with open(response_file, 'r') as openFileObject:
             for line in openFileObject:
-                if len(line) > 0:
-                    self.process_response_line(line)
+                # verifico que la linea no este en blanco
+                if len(line.strip()) > 0:
+                    # verifico que la linea contenga la entrada que considero un request (ID: 71#Response-Code:)
+                    if re.search("ID: [0-9]+#Response-Code:", line):
+                        # verifico que el payload contenga un mensaje SOAP
+                        if re.search("</soapenv:Envelope>", line):
+                            self.process_response_line(line)
         self.conn.commit()
         self.conn.close()
         self.logger.info('Writing output files...')
@@ -48,7 +59,8 @@ class MockBuilder:
 
     def get_request_data(self, line):
         # get url
-        url_init = line.index(':9080/') + 5
+        # url_init = line.index(':9080/') + 5
+        url_init = re.search(":[0-9][0-9][0-9][0-9]/", line).start() + 5
         url_end = line.index('#Encoding')
         url = line[url_init:url_end]
 
@@ -162,7 +174,7 @@ class MockBuilder:
         headers = data['headers']
         content_len = headers['Content-Length']
         response = data['response_body']
-        parameters =(status, content_len, response, line_id)
+        parameters = (status, content_len, response, line_id)
         sql = '''UPDATE SERVICE_MOCK SET STATUS = ?, CONTENTLEN = ?, RESPONSE = ? WHERE ID = ?'''
         c.execute(sql, parameters)
 
@@ -192,4 +204,3 @@ def main(request, response):
 
 if __name__ == '__main__':
     main(args.request_file, args.response_file)
-

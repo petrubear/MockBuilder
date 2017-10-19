@@ -1,6 +1,6 @@
 #!/bin/sh
 # request parser
-OUTPUT_PATH=/Users/edison/Tmp/mock_test/out/
+OUTPUT_PATH=/opt/fbp/mocks_baninter/out/
 TIMESTAMP=$(date +"%Y%m%d_%I%M%S")
 
 mkdir -p ${OUTPUT_PATH}
