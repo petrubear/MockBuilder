@@ -12,9 +12,6 @@ class RequestDataTest(unittest.TestCase):
         post = data['method']
         url = data['url']
         body_patterns = data['bodyPatterns']
-        # body = [{'equalTo': soap}]
-        # print(body_patterns)
-        # print(soap)
 
         self.assertEqual('/consultationIbs/CustomerConsultationWsService', url)
         self.assertEqual('POST', post)
@@ -35,15 +32,15 @@ class RequestDataTest(unittest.TestCase):
         self.assertTrue(str(response_body).startswith('<?xml version="1.0" encoding="UTF-8"?>'))
         self.assertTrue(str(response_body).endswith('</soapenv:Envelope>'))
 
-    # def testDB(self):
-    #     mb = MockBuilder.MockBuilder()
-    #     mb.setup_db()
-    #     self.assertTrue(True)
+    @unittest.skip
+    def test_rest_request(self):
+        # prepare for rest request!
+        pass
 
-    # def testWirteFile(self):
-    #     mb = MockBuilder.MockBuilder()
-    #     mb.write_request_response_files()
-    #     self.assertTrue(True)
+    @unittest.skip
+    def test_rest_response(self):
+        # prepare for rest response!
+        pass
 
 
 if __name__ == '__main__':
