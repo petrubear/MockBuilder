@@ -44,7 +44,7 @@ class MockBuilder:
                 # verifico que la linea no este en blanco
                 if len(line.strip()) > 0:
                     # verifico que la linea contenga la entrada que considero un request (ID: 71#Response-Code:)
-                    if re.search("ID: [0-9]+#Response-Code:", line):
+                    if re.search("ID: [0-9]+#Content-Type:", line):
                         # verifico que el payload contenga un mensaje SOAP
                         if re.search("</soapenv:Envelope>", line):
                             self.process_response_line(line)
@@ -59,14 +59,12 @@ class MockBuilder:
         self.write_request_db(line_id, request)
 
     def get_request_data(self, line):
-        # get url
-        # url_init = line.index(':9080/') + 5
         url_init = re.search(":[0-9][0-9][0-9][0-9]/", line).start() + 5
-        url_end = line.index('#Encoding')
+        url_end = line.index('#HttpMethod:')
         url = line[url_init:url_end]
 
         # get method
-        method_init = line.index('#Http-Method: ') + 14
+        method_init = line.index('#HttpMethod: ') + 13
         method_end = line.index('#Content-Type:')
         method = line[method_init:method_end]
 
@@ -80,22 +78,22 @@ class MockBuilder:
         return request_data
 
     def process_response_line(self, line):
-        line_id = str(line[:line.index('#Response-Code:')]).replace('ID: ', '')
+        line_id = str(line[:line.index('#Content-Type:')]).replace('ID: ', '')
         response = self.get_response_data(line)
         self.write_response_db(line_id, response)
 
     def get_response_data(self, line):
         # get status
-        status_init = line.index('#Response-Code: ') + 16
-        status_end = line.index('#Encoding')
+        status_init = line.index('#ResponseCode: ') + 15
+        status_end = line.index('#ExchangeId')
         status = line[status_init:status_end]
 
         response_init = line.index('#Payload: ') + 10
         response_end = line.index('</soapenv:Envelope>#') + 19
         response_body = line[response_init:response_end]
 
-        content_len_init = line.index('Content-Length=[') + 16
-        content_len_end = line.index('], content-type')
+        content_len_init = line.index('Content-Length=') + 15
+        content_len_end = line.index(', Content-Language')
         content_len = line[content_len_init:content_len_end]
 
         headers = {'X-Powered-By': 'Servlet/3.0',
