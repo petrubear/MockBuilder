@@ -24,6 +24,7 @@ class MockBuilder:
         self.request_dir = default_config['REQUEST_DIR']
         self.response_dir = default_config['RESPONSE_DIR']
         self.db_name = default_config['DBNAME']
+        self.inline_response = default_config['INLINE_RESPONSE']
 
     def build(self, request_file, response_file):
         self.conn = sqlite3.connect(self.db_name)
@@ -51,7 +52,10 @@ class MockBuilder:
         self.conn.commit()
         self.conn.close()
         self.logger.info('Writing output files...')
-        self.write_request_response_files()
+        if self.inline_response == '1':
+            self.write_request_inline_files()
+        else:
+            self.write_request_response_files()
 
     def process_request_line(self, line):
         request = self.get_request_data(line)
@@ -107,6 +111,29 @@ class MockBuilder:
 
     def get_filename(self, service, line_id):
         return 'body' + service.replace('/', '-') + '-' + line_id.replace(' ', '')
+
+    def write_request_inline_files(self):
+        self.logger.debug("Writing inline files...")
+        self.conn = sqlite3.connect(self.db_name)
+        c = self.conn.cursor()
+        sql = '''SELECT * FROM SERVICE_MOCK'''
+        c.execute(sql)
+        rows = c.fetchall()
+
+        for row in rows:
+            filename = row[4]
+            body = row[7]
+            equal_to_data = {'equalTo': row[3]}
+            request = {'url': row[1], 'method': row[2], 'bodyPatterns': [equal_to_data]}
+            headers = {'X-Powered-By': 'Servlet/3.0',
+                       'Content-Type': 'text/xml; charset=UTF-8',
+                       'Content-Language': 'en-US',
+                       'Content-Length': row[6],
+                       'Date': 'Wed, 10 Feb 2016 17:18:28 GMT'}
+            response = {'status': row[5], 'body': body, 'headers': headers}
+            service_data = {'request': request, 'response': response}
+            json_data = json.dumps(service_data)
+            self.write_file(self.request_dir, filename, json_data)
 
     def write_request_response_files(self):
         self.logger.debug("Writing request files...")
