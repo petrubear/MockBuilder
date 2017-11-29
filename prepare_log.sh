@@ -2,7 +2,7 @@
 
 # Importante: Configurar esta ruta!
 # En linux cambiar sed -i '' por sed -i
-OUTPUT_PATH=/opt/fbp/mocks_baninter/out/
+OUTPUT_PATH=/opt/fbp/tmp/out/
 
 TIMESTAMP=$(date +"%Y%m%d_%I%M%S")
 
@@ -16,15 +16,13 @@ function process_request {
         rm ${req_output_file}
     fi
 
-    awk '$0=="---------------------------" {p=1}; p; $0=="--------------------------------------" {p=0}' $1 | tr '\n' '#'  > ${req_output_file}
-    if [ -f ${req_output_file} ] ; then
-        sed -i '' 's/--------------------------------------#---------------------------#/\'$'\n/g' ${req_output_file}
-        sed -i '' 's/---------------------------#//g' ${req_output_file}
-        echo '[INFO] Output: '${req_output_file}
-    else
-       echo '[ERROR] File not Found: '${req_output_file}
-       exit 1
-    fi
+    awk '$0 ~ ".*REQ_OUT" {p=1}; p; $0 ~ "Payload:" {p=0}' $1 |  \
+        sed -e 's/    //g' | \
+        awk '{while(match($0, /.*REQ_OUT.*/) > 0){sub(/.*REQ_OUT.*/, "ID: " ++c)}};1' | \
+        tr '\n' '#' | \
+        sed -e 's/ID:/\'$'\nID:/g' > ${req_output_file}
+    echo '[INFO] Output: '${req_output_file}
+
 }
 
 function process_response {
@@ -36,15 +34,12 @@ function process_response {
         rm ${res_output_file}
     fi
 
-    awk '$0=="----------------------------" {p=1}; p; $0=="--------------------------------------" {p=0}' $1 | tr '\n' '#' > ${res_output_file}
-    if [ -f ${res_output_file} ] ; then
-        sed -i '' 's/--------------------------------------#----------------------------#/\'$'\n/g' ${res_output_file}
-        sed -i '' 's/----------------------------#//g' ${res_output_file}
-        echo '[INFO] Output: '${res_output_file}
-    else
-       echo '[ERROR] File not Found: '${res_output_file}
-       exit 1
-    fi
+    awk '$0 ~ ".*RESP_IN" {p=1}; p; $0 ~ "Payload:" {p=0}' $1 |  \
+        sed -e 's/    //g' | \
+        awk '{while(match($0, /.*RESP_IN.*/) > 0){sub(/.*RESP_IN.*/, "ID: " ++c)}};1' | \
+        tr '\n' '#' | \
+        sed -e 's/ID:/\'$'\nID:/g' > ${res_output_file}
+    echo '[INFO] Output: '${res_output_file}
 }
 
 function execute_builder {

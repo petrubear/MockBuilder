@@ -24,6 +24,7 @@ class MockBuilder:
         self.request_dir = default_config['REQUEST_DIR']
         self.response_dir = default_config['RESPONSE_DIR']
         self.db_name = default_config['DBNAME']
+        self.inline_response = default_config['INLINE_RESPONSE']
 
     def build(self, request_file, response_file):
         self.conn = sqlite3.connect(self.db_name)
@@ -44,14 +45,17 @@ class MockBuilder:
                 # verifico que la linea no este en blanco
                 if len(line.strip()) > 0:
                     # verifico que la linea contenga la entrada que considero un request (ID: 71#Response-Code:)
-                    if re.search("ID: [0-9]+#Response-Code:", line):
+                    if re.search("ID: [0-9]+#Content-Type:", line):
                         # verifico que el payload contenga un mensaje SOAP
                         if re.search("</soapenv:Envelope>", line):
                             self.process_response_line(line)
         self.conn.commit()
         self.conn.close()
         self.logger.info('Writing output files...')
-        self.write_request_response_files()
+        if self.inline_response == '1':
+            self.write_request_inline_files()
+        else:
+            self.write_request_response_files()
 
     def process_request_line(self, line):
         request = self.get_request_data(line)
@@ -59,14 +63,12 @@ class MockBuilder:
         self.write_request_db(line_id, request)
 
     def get_request_data(self, line):
-        # get url
-        # url_init = line.index(':9080/') + 5
         url_init = re.search(":[0-9][0-9][0-9][0-9]/", line).start() + 5
-        url_end = line.index('#Encoding')
+        url_end = line.index('#HttpMethod:')
         url = line[url_init:url_end]
 
         # get method
-        method_init = line.index('#Http-Method: ') + 14
+        method_init = line.index('#HttpMethod: ') + 13
         method_end = line.index('#Content-Type:')
         method = line[method_init:method_end]
 
@@ -80,22 +82,22 @@ class MockBuilder:
         return request_data
 
     def process_response_line(self, line):
-        line_id = str(line[:line.index('#Response-Code:')]).replace('ID: ', '')
+        line_id = str(line[:line.index('#Content-Type:')]).replace('ID: ', '')
         response = self.get_response_data(line)
         self.write_response_db(line_id, response)
 
     def get_response_data(self, line):
         # get status
-        status_init = line.index('#Response-Code: ') + 16
-        status_end = line.index('#Encoding')
+        status_init = line.index('#ResponseCode: ') + 15
+        status_end = line.index('#ExchangeId')
         status = line[status_init:status_end]
 
         response_init = line.index('#Payload: ') + 10
         response_end = line.index('</soapenv:Envelope>#') + 19
         response_body = line[response_init:response_end]
 
-        content_len_init = line.index('Content-Length=[') + 16
-        content_len_end = line.index('], content-type')
+        content_len_init = line.index('Content-Length=') + 15
+        content_len_end = line.index(', Content-Language')
         content_len = line[content_len_init:content_len_end]
 
         headers = {'X-Powered-By': 'Servlet/3.0',
@@ -109,6 +111,29 @@ class MockBuilder:
 
     def get_filename(self, service, line_id):
         return 'body' + service.replace('/', '-') + '-' + line_id.replace(' ', '')
+
+    def write_request_inline_files(self):
+        self.logger.debug("Writing inline files...")
+        self.conn = sqlite3.connect(self.db_name)
+        c = self.conn.cursor()
+        sql = '''SELECT * FROM SERVICE_MOCK'''
+        c.execute(sql)
+        rows = c.fetchall()
+
+        for row in rows:
+            filename = row[4]
+            body = row[7]
+            equal_to_data = {'equalTo': row[3]}
+            request = {'url': row[1], 'method': row[2], 'bodyPatterns': [equal_to_data]}
+            headers = {'X-Powered-By': 'Servlet/3.0',
+                       'Content-Type': 'text/xml; charset=UTF-8',
+                       'Content-Language': 'en-US',
+                       'Content-Length': row[6],
+                       'Date': 'Wed, 10 Feb 2016 17:18:28 GMT'}
+            response = {'status': row[5], 'body': body, 'headers': headers}
+            service_data = {'request': request, 'response': response}
+            json_data = json.dumps(service_data)
+            self.write_file(self.request_dir, filename, json_data)
 
     def write_request_response_files(self):
         self.logger.debug("Writing request files...")
