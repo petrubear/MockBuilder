@@ -21,6 +21,9 @@ Ejecutar el script prepare_log.sh con el log de salida de cxf como parámetro, e
 
 Los archivos de salida de request deben copiarse en el directorio **mappings** y los archivos de salida de response en el directorio **__files** en wiremock
 
+### Requiere
+- python 3
+
 ### Nota:
 En linux **sed** funciona diferente que en macos por lo que se debe editar el archivo **prepare_log.sh** y reemplazar los comandos:
 
